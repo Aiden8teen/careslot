@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@theme {
+  /* Theme color tokens */
+  --color-deep-navy: #021422;
+  --color-vibrant-green: #00852e;
+  --color-midnight-navy: #001f38;
+  --color-clinical-cyan: #0891B2;
+  --color-sky-wash: #91c3ff;
+  --color-snow: #ffffff;
+  --color-cloud: #f2f6ff;
+  --color-warm-sand: #fff6ea;
+  --color-silver-mist: #ccd2d7;
+  --color-slate: #6a7c89;
+  --color-graphite: #67727a;
+  --color-destructive: #DC2626;
+
+  --font-display: 'Figtree', 'New Kansas', 'Noto Sans Arabic', serif;
+  --font-sans: 'Inter', 'Noto Sans', 'Noto Sans Arabic', system-ui, sans-serif;
+  --font-badge: 'Montserrat', 'Rift Soft', sans-serif;
+}
+
+body {
+  background-color: var(--color-snow);
+  color: var(--color-deep-navy);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+}
+
+/* Hide Next.js dev overlay, issues pill, and debug portals */
+nextjs-portal,
+[data-nextjs-dev-overlay] {
+  display: none !important;
+}
