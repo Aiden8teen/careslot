@@ -9,12 +9,25 @@ import PatientsTab from "../components/PatientsTab";
 import DoctorsRoomsTab from "../components/DoctorsRoomsTab";
 import LoginModal from "../components/LoginModal";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/clinic";
+function getApiBase(): string {
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return process.env.NEXT_PUBLIC_API_URL || "https://careslot-9lc7.onrender.com";
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+}
+
+function getWsUrl(): string {
+  if (typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    return process.env.NEXT_PUBLIC_WS_URL || "wss://careslot-9lc7.onrender.com/ws/clinic";
+  }
+  return process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws/clinic";
+}
 
 type TabKey = "calendar" | "queue" | "waitlist" | "patients" | "practitioners";
 
 export default function CareSlotClinicApp() {
+  const API_BASE = getApiBase();
+  const WS_URL = getWsUrl();
   const [role, setRole] = useState<"receptionist" | "doctor">("receptionist");
   const [activeTab, setActiveTab] = useState<TabKey>("calendar");
   const [calendarView, setCalendarView] = useState<"grid" | "week" | "list">("grid");
