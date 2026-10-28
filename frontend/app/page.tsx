@@ -370,19 +370,28 @@ export default function CareSlotClinicApp() {
       {/* ---------------------------------------------------- */}
       <aside className="w-60 md:w-64 bg-[#0B1F4B] text-white flex flex-col justify-between shrink-0 select-none shadow-xl border-r border-[#071533] h-screen sticky top-0 overflow-y-auto">
         {/* Logo Header */}
-        <div className="p-6 border-b border-white/10">
-          <div className="relative w-40 h-10">
-            <Image
-              src="/images/careslot-logo.png"
-              alt="CareSlot"
-              fill
-              className="object-contain object-left"
-              priority
-            />
+        <div className="p-5 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="relative w-11 h-11 rounded-xl bg-white/10 border border-white/15 p-1.5 flex items-center justify-center shrink-0 shadow-sm backdrop-blur-sm">
+              <Image
+                src="/images/careslot-icon.png"
+                alt="CareSlot Logo"
+                width={36}
+                height={36}
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-0.5">
+                <span className="text-[20px] font-black tracking-tight text-white font-sans">Care</span>
+                <span className="text-[20px] font-black tracking-tight text-[#01B1A9] font-sans">Slot</span>
+              </div>
+              <p className="text-[11px] text-white/60 font-medium truncate leading-tight">
+                El-Chifa Medical Center
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-white/60 mt-1 font-medium">
-            El-Chifa Medical Center
-          </p>
         </div>
 
         {/* Navigation Items */}

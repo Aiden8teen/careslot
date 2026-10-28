@@ -75,14 +75,22 @@ export default function LoginModal({
         <div className="p-8 md:p-10 flex flex-col justify-center">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <div className="flex items-center gap-2 mb-2">
-                <div className="relative w-36 h-10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="relative w-10 h-10 rounded-xl bg-[#01B1A9]/10 border border-[#01B1A9]/20 p-1.5 flex items-center justify-center shrink-0 shadow-sm">
                   <Image
-                    src="/images/careslot-logo.png"
+                    src="/images/careslot-icon.png"
                     alt="CareSlot Logo"
-                    fill
-                    className="object-contain object-left"
+                    width={32}
+                    height={32}
+                    className="object-contain"
                   />
+                </div>
+                <div>
+                  <div className="flex items-center gap-0.5 leading-none">
+                    <span className="text-xl font-black tracking-tight text-[#0B1F4B] font-sans">Care</span>
+                    <span className="text-xl font-black tracking-tight text-[#01B1A9] font-sans">Slot</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-[#01B1A9] uppercase tracking-wider">Clinical Workspace</span>
                 </div>
               </div>
               <h1 className="text-xl font-bold text-[#0B1F4B]">Staff Portal Login</h1>
