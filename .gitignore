@@ -41,6 +41,7 @@ pnpm-debug.log*
 *.sqlite3
 careslot_clinic.db
 backend/careslot_clinic.db
+.playwright-mcp/
 
 # Secrets & Environment Variables
 .env

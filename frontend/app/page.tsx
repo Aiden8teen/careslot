@@ -239,6 +239,26 @@ export default function CareSlotClinicApp() {
     rec.start();
   };
 
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetDemo = async () => {
+    if (!window.confirm("Restore original showcase data (7 appointments, 3 waitlist entries, live queue) for today?")) {
+      return;
+    }
+    setIsResetting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/demo/reset`, { method: "POST" });
+      if (res.ok) {
+        setSelectedDate(new Date().toISOString().split("T")[0]);
+        await fetchOverview();
+      }
+    } catch (err) {
+      console.error("Reset error:", err);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   const assignArrivalNumber = async (id: number) => {
     await fetch(`${API_BASE}/api/appointments/${id}/assign-arrival?staff_role=${role}`, { method: "POST" });
     fetchOverview();
@@ -531,6 +551,21 @@ export default function CareSlotClinicApp() {
               <span>Switch / Sign In</span>
             </button>
             <span className="text-[10px] text-white/40">v2.0</span>
+          </div>
+
+          {/* Quick Demo Restore Button */}
+          <div className="pt-2 border-t border-white/10">
+            <button
+              onClick={handleResetDemo}
+              disabled={isResetting}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 text-[11px] font-semibold text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition cursor-pointer border border-white/10"
+              title="Restore original showcase appointments, queue, and waitlist for today"
+            >
+              <svg className={`w-3.5 h-3.5 ${isResetting ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>{isResetting ? "Restoring..." : "Reset Demo Data"}</span>
+            </button>
           </div>
         </div>
       </aside>

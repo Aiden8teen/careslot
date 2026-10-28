@@ -145,6 +145,14 @@ def api_root():
     }
 
 
+@app.post("/api/demo/reset")
+async def reset_demo_database():
+    """Resets the clinic database back to the clean demonstration state with today's appointments."""
+    init_and_seed_db(force=True)
+    await ws_manager.broadcast("CLINIC_RESET", {"message": "Demo data restored successfully"})
+    return {"status": "ok", "message": "Demo data successfully reset to clean showcase state"}
+
+
 # ---------------------------------------------------------------------------
 # Staff Authentication & Role Profiles (Receptionist vs. Doctors)
 # ---------------------------------------------------------------------------
@@ -253,7 +261,7 @@ def get_clinic_overview(
     doctor_delays = {}
     for d in doctors:
         delay_min = 0
-        # Only calculate live delays for today's active schedule
+        # Live consultation overrun calculation for active consultations today
         if day == today_date:
             doc_day_appts = [
                 a for a in appts 
@@ -262,18 +270,16 @@ def get_clinic_overview(
             in_consult = [a for a in doc_day_appts if a.status == AppointmentStatus.IN_CONSULTATION.value]
             if in_consult:
                 curr = in_consult[0]
+                curr_start = curr.start_time.hour * 60 + curr.start_time.minute
                 curr_end = curr.end_time.hour * 60 + curr.end_time.minute
-                if now_min > curr_end:
-                    delay_min = max(delay_min, min(45, now_min - curr_end))
-            unstarted = [
-                a for a in doc_day_appts 
-                if a.status in (AppointmentStatus.ARRIVED.value, AppointmentStatus.SCHEDULED.value) 
-                and (a.start_time.hour * 60 + a.start_time.minute) < now_min
-            ]
-            if unstarted:
-                earliest_late = min(a.start_time.hour * 60 + a.start_time.minute for a in unstarted)
-                # Realistic clinical cap: an overdue slot caps running delay at 45m instead of accumulating indefinitely
-                delay_min = max(delay_min, min(45, now_min - earliest_late))
+                # If currently within the scheduled consultation window: doctor is on schedule
+                if curr_start <= now_min <= curr_end:
+                    delay_min = 0
+                # If consultation is actively exceeding its scheduled slot end time recently (within 30m)
+                elif curr_end < now_min <= curr_end + 30:
+                    delay_min = now_min - curr_end
+                else:
+                    delay_min = 0
         doctor_delays[d.id] = delay_min
 
     return {

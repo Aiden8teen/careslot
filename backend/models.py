@@ -260,10 +260,146 @@ class AuditLog(Base):
 # ---------------------------------------------------------------------------
 
 
-def init_and_seed_db() -> None:
+def _seed_showcase_appointments_for_date(db: Session, target_date: date, patients=None, practitioners=None) -> None:
+    if patients is None:
+        patients = db.query(Patient).order_by(Patient.id).all()
+    if practitioners is None:
+        practitioners = db.query(Practitioner).order_by(Practitioner.id).all()
+
+    if len(patients) < 7 or len(practitioners) < 3:
+        return
+
+    # Delete existing appointments on target_date to avoid duplicates
+    db.query(Appointment).filter(Appointment.appointment_date == target_date).delete()
+
+    now = datetime.utcnow()
+    showcase_appts = [
+        # Dr. Youcef Amrani (Cardiologie - Room 2)
+        Appointment(
+            patient_id=patients[0].id,
+            practitioner_id=practitioners[0].id,
+            room_id=practitioners[0].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 0),
+            end_time=time(16, 20),
+            duration_min=20,
+            consultation_type="STANDARD",
+            status=AppointmentStatus.IN_CONSULTATION.value,
+            arrival_number=1,
+            checked_in_at=now,
+            notes="Suivi tension & ECG",
+        ),
+        Appointment(
+            patient_id=patients[1].id,
+            practitioner_id=practitioners[0].id,
+            room_id=practitioners[0].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 25),
+            end_time=time(16, 45),
+            duration_min=20,
+            consultation_type="FOLLOW_UP",
+            status=AppointmentStatus.ARRIVED.value,
+            arrival_number=2,
+            checked_in_at=now,
+            notes="Renouvellement ordonnance",
+        ),
+        Appointment(
+            patient_id=patients[2].id,
+            practitioner_id=practitioners[0].id,
+            room_id=practitioners[0].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 45),
+            end_time=time(17, 30),
+            duration_min=45,
+            consultation_type="COMPREHENSIVE",
+            status=AppointmentStatus.ARRIVED.value,
+            arrival_number=3,
+            checked_in_at=now,
+            notes="Bilan complet",
+        ),
+        # Dr. Meriem Kaci (Pédiatrie - Room 3)
+        Appointment(
+            patient_id=patients[3].id,
+            practitioner_id=practitioners[1].id,
+            room_id=practitioners[1].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 20),
+            end_time=time(16, 40),
+            duration_min=20,
+            consultation_type="STANDARD",
+            status=AppointmentStatus.IN_CONSULTATION.value,
+            arrival_number=1,
+            checked_in_at=now,
+            notes="Consultation pédiatrique",
+        ),
+        Appointment(
+            patient_id=patients[4].id,
+            practitioner_id=practitioners[1].id,
+            room_id=practitioners[1].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 40),
+            end_time=time(17, 0),
+            duration_min=20,
+            consultation_type="FOLLOW_UP",
+            status=AppointmentStatus.ARRIVED.value,
+            arrival_number=2,
+            checked_in_at=now,
+            notes="Contrôle vaccinal",
+        ),
+        # Dr. Karim Benali (Médecine Générale - Room 1)
+        Appointment(
+            patient_id=patients[5].id,
+            practitioner_id=practitioners[2].id,
+            room_id=practitioners[2].current_room_id,
+            appointment_date=target_date,
+            start_time=time(15, 30),
+            end_time=time(15, 50),
+            duration_min=20,
+            consultation_type="STANDARD",
+            status=AppointmentStatus.FINISHED.value,
+            arrival_number=1,
+            is_walk_in=True,
+            checked_in_at=now - timedelta(minutes=45),
+            finished_at=now - timedelta(minutes=15),
+            notes="Sans rendez-vous",
+        ),
+        Appointment(
+            patient_id=patients[6].id,
+            practitioner_id=practitioners[2].id,
+            room_id=practitioners[2].current_room_id,
+            appointment_date=target_date,
+            start_time=time(16, 20),
+            end_time=time(16, 40),
+            duration_min=20,
+            consultation_type="STANDARD",
+            status=AppointmentStatus.IN_CONSULTATION.value,
+            arrival_number=2,
+            checked_in_at=now,
+            notes="Examen général",
+        ),
+    ]
+    db.add_all(showcase_appts)
+
+
+def init_and_seed_db(force: bool = False) -> None:
     Base.metadata.create_all(bind=engine)
     with SessionLocal() as db:
-        if db.query(Practitioner).count() > 0:
+        if force:
+            db.query(AuditLog).delete()
+            db.query(Appointment).delete()
+            db.query(WaitingListEntry).delete()
+            db.query(StaffUser).delete()
+            db.query(Practitioner).delete()
+            db.query(Patient).delete()
+            db.query(Room).delete()
+            db.commit()
+
+        if db.query(Practitioner).count() > 0 and not force:
+            # Check if today has appointments; if not, automatically populate today's schedule
+            today = date.today()
+            if db.query(Appointment).filter(Appointment.appointment_date == today).count() == 0:
+                _seed_showcase_appointments_for_date(db, today)
+                db.commit()
             return
 
         rooms = [
@@ -278,7 +414,7 @@ def init_and_seed_db() -> None:
         db.flush()
 
         doctors_data = [
-            ("Dr. Youcef Amrani", "د. يوسف عمراني", "Cardiologie", rooms[1].id, 30, 16, "#021422"),
+            ("Dr. Youcef Amrani (Chef de Service)", "د. يوسف عمراني", "Cardiologie", rooms[1].id, 30, 22, "#021422"),
             ("Dr. Meriem Kaci", "د. مريم قاسي", "Pédiatrie", rooms[2].id, 20, 24, "#0891B2"),
             ("Dr. Karim Benali", "د. كريم بن علي", "Médecine Générale", rooms[0].id, 15, 30, "#00852e"),
             ("Dr. Amina Boudiaf", "د. أمينة بوضياف", "Gynécologie", rooms[3].id, 30, 18, "#001f38"),
@@ -308,7 +444,7 @@ def init_and_seed_db() -> None:
         staff = [
             StaffUser(
                 username="reception",
-                full_name="Yasmine Meziane (Réceptionniste)",
+                full_name="Leila Mansour (Réceptionniste)",
                 role=StaffRole.RECEPTIONIST.value,
                 practitioner_id=None,
             ),
@@ -324,6 +460,12 @@ def init_and_seed_db() -> None:
                 role=StaffRole.DOCTOR.value,
                 practitioner_id=practitioners[1].id,
             ),
+            StaffUser(
+                username="dr.benali",
+                full_name="Dr. Karim Benali",
+                role=StaffRole.DOCTOR.value,
+                practitioner_id=practitioners[2].id,
+            ),
         ]
         db.add_all(staff)
 
@@ -334,6 +476,8 @@ def init_and_seed_db() -> None:
             ("سارة بوعلام / Sara Boualem", "0552334455"),
             ("ياسين زروقي / Yacine Zerrouki", "0662112233"),
             ("خديجة بن يحيى / Khadidja Benyahia", "0771889900"),
+            ("Nabila Conflict Test", "0550998877"),
+            ("Yacine Brahimi", "0550112233"),
         ]
         patients = []
         for name, phone in patients_seed:
@@ -347,70 +491,115 @@ def init_and_seed_db() -> None:
         db.flush()
 
         today = date.today()
-        appts = [
+        # Seed 3 priority waitlist entries
+        waitlist = [
+            WaitingListEntry(
+                patient_id=patients[4].id,  # Yacine Zerrouki
+                practitioner_id=practitioners[0].id,  # Dr. Amrani
+                preferred_date=today,
+                preferred_window=PreferredWindow.ANY.value,
+                urgency=WaitlistUrgency.HIGH.value,
+                reason="Bilan pré-opératoire cardiologique",
+                is_active=True,
+            ),
+            WaitingListEntry(
+                patient_id=patients[5].id,  # Khadidja Benyahia
+                practitioner_id=practitioners[1].id,  # Dr. Kaci
+                preferred_date=today,
+                preferred_window=PreferredWindow.MORNING.value,
+                urgency=WaitlistUrgency.HIGH.value,
+                reason="Fièvre enfant — disponible à 15 min de la clinique",
+                is_active=True,
+            ),
+            WaitingListEntry(
+                patient_id=patients[3].id,  # Sara Boualem
+                practitioner_id=practitioners[0].id,  # Dr. Amrani
+                preferred_date=today,
+                preferred_window=PreferredWindow.MORNING.value,
+                urgency=WaitlistUrgency.URGENT.value,
+                reason="Douleur thoracique légère — souhaite le premier créneau libre le matin",
+                is_active=True,
+            ),
+        ]
+        db.add_all(waitlist)
+
+        # Historical appointments (past visits for patient directory visit counts)
+        history_appts = [
             Appointment(
                 patient_id=patients[0].id,
                 practitioner_id=practitioners[0].id,
                 room_id=practitioners[0].current_room_id,
-                appointment_date=today,
+                appointment_date=date(2026, 10, 22),
                 start_time=time(9, 0),
                 end_time=time(9, 30),
+                duration_min=30,
+                consultation_type="STANDARD",
                 status=AppointmentStatus.ARRIVED.value,
                 arrival_number=1,
-                checked_in_at=datetime.utcnow(),
+                checked_in_at=datetime.utcnow() - timedelta(days=6),
                 notes="Contrôle tension & ECG",
             ),
             Appointment(
                 patient_id=patients[1].id,
                 practitioner_id=practitioners[0].id,
                 room_id=practitioners[0].current_room_id,
-                appointment_date=today,
+                appointment_date=date(2026, 10, 22),
                 start_time=time(9, 30),
                 end_time=time(10, 0),
+                duration_min=30,
+                consultation_type="STANDARD",
                 status=AppointmentStatus.ARRIVED.value,
                 arrival_number=2,
-                checked_in_at=datetime.utcnow(),
+                checked_in_at=datetime.utcnow() - timedelta(days=6),
                 notes="Suivi cardiologique",
             ),
             Appointment(
                 patient_id=patients[2].id,
                 practitioner_id=practitioners[1].id,
                 room_id=practitioners[1].current_room_id,
-                appointment_date=today,
+                appointment_date=date(2026, 10, 22),
                 start_time=time(10, 0),
                 end_time=time(10, 20),
+                duration_min=20,
+                consultation_type="STANDARD",
                 status=AppointmentStatus.SCHEDULED.value,
                 arrival_number=None,
                 notes="Vaccination pédiatrique",
             ),
+            Appointment(
+                patient_id=patients[6].id,  # Nabila Conflict Test
+                practitioner_id=practitioners[0].id,
+                room_id=practitioners[0].current_room_id,
+                appointment_date=date(2026, 10, 18),
+                start_time=time(11, 30),
+                end_time=time(12, 15),
+                duration_min=45,
+                consultation_type="STANDARD",
+                status=AppointmentStatus.CANCELLED.value,
+                arrival_number=None,
+                notes="",
+            ),
+            Appointment(
+                patient_id=patients[7].id,  # Yacine Brahimi
+                practitioner_id=practitioners[0].id,
+                room_id=practitioners[0].current_room_id,
+                appointment_date=date(2026, 10, 24),
+                start_time=time(10, 0),
+                end_time=time(10, 30),
+                duration_min=30,
+                consultation_type="STANDARD",
+                status=AppointmentStatus.SCHEDULED.value,
+                arrival_number=None,
+                notes="Booked via CareSlot AI Assistant",
+            ),
         ]
-        db.add_all(appts)
+        db.add_all(history_appts)
 
-        waitlist = [
-            WaitingListEntry(
-                patient_id=patients[3].id,
-                practitioner_id=practitioners[0].id,
-                preferred_date=today,
-                preferred_window=PreferredWindow.MORNING.value,
-                urgency=WaitlistUrgency.URGENT.value,
-                reason="Douleur thoracique légère — souhaite le premier créneau libre le matin",
-            ),
-            WaitingListEntry(
-                patient_id=patients[4].id,
-                practitioner_id=practitioners[0].id,
-                preferred_date=today,
-                preferred_window=PreferredWindow.ANY.value,
-                urgency=WaitlistUrgency.HIGH.value,
-                reason="Bilan pré-opératoire cardiologique",
-            ),
-            WaitingListEntry(
-                patient_id=patients[5].id,
-                practitioner_id=practitioners[1].id,
-                preferred_date=today,
-                preferred_window=PreferredWindow.MORNING.value,
-                urgency=WaitlistUrgency.HIGH.value,
-                reason="Fièvre enfant — disponible à 15 min de la clinique",
-            ),
-        ]
-        db.add_all(waitlist)
+        # Showcase appointments for today
+        _seed_showcase_appointments_for_date(db, today, patients=patients, practitioners=practitioners)
+
+        # Also seed 2026-10-26 if different from today for historical view
+        if today != date(2026, 10, 26):
+            _seed_showcase_appointments_for_date(db, date(2026, 10, 26), patients=patients, practitioners=practitioners)
+
         db.commit()
