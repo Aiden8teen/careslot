@@ -9,7 +9,7 @@ import urllib.parse
 import urllib.error
 from datetime import date, timedelta
 
-BASE_URL = "http://127.0.0.1:8000"
+BASE_URL = sys.argv[1].rstrip("/") if len(sys.argv) > 1 else "http://127.0.0.1:8000"
 
 def request(method, path, data=None):
     url = f"{BASE_URL}{path}"
@@ -63,16 +63,24 @@ def run_tests():
           status == 200 and status2 == 200 and status3 == 200 and len(search_lat) > 0)
 
     # 4. Slot Suggestions for Flexible Durations (15m, 20m, 45m)
-    test_date = (date.today() + timedelta(days=2)).isoformat()
+    # Pick next workday (avoid Algerian Friday off-day)
+    target_d = date.today() + timedelta(days=1)
+    if target_d.strftime("%a") == "Fri":
+        target_d += timedelta(days=1)
+    test_date = target_d.isoformat()
 
-    # Clean any previous test run data for test_date
+    # Clean any previous test run data for test_date if local db exists
     import os, sqlite3
     db_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "careslot_clinic.db")
-    conn = sqlite3.connect(db_file)
-    c = conn.cursor()
-    c.execute("DELETE FROM appointments WHERE appointment_date = ?", (test_date,))
-    conn.commit()
-    conn.close()
+    if os.path.exists(db_file):
+        try:
+            conn = sqlite3.connect(db_file)
+            c = conn.cursor()
+            c.execute("DELETE FROM appointments WHERE appointment_date = ? AND notes LIKE '%test%'", (test_date,))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
 
     status_15, slots_15 = request("GET", f"/api/slots/suggest?practitioner_id=1&target_date={test_date}&duration_min=15")
     status_45, slots_45 = request("GET", f"/api/slots/suggest?practitioner_id=1&target_date={test_date}&duration_min=45")
