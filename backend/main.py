@@ -132,8 +132,8 @@ def get_db():
         db.close()
 
 
-@app.get("/healthz")
-@app.get("/")
+@app.api_route("/healthz", methods=["GET", "HEAD"])
+@app.api_route("/", methods=["GET", "HEAD"])
 def api_root():
     """CareSlot API Health & Status Endpoint."""
     return {
